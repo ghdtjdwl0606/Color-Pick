@@ -146,10 +146,11 @@ const App: React.FC = () => {
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setIsPaletteForcedOpen(!isPaletteForcedOpen)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-sm ${isPaletteForcedOpen ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-400'}`}
+              className={`flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all shadow-sm ${isPaletteForcedOpen ? 'bg-indigo-600 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-indigo-400'}`}
             >
-              <Heart className={`w-4 h-4 ${isPaletteForcedOpen ? 'fill-current' : ''}`} />
-              마이 팔레트 ({activePalette.colors.length})
+              <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isPaletteForcedOpen ? 'fill-current' : ''}`} />
+              <span className="hidden xs:inline">마이 팔레트</span>
+              <span className="xs:hidden">팔레트</span> ({activePalette.colors.length})
             </button>
             <button className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-full transition-colors hidden sm:block">
               <Github className="w-5 h-5" />
@@ -160,7 +161,7 @@ const App: React.FC = () => {
 
       {/* Floating Multi-Palette Manager */}
       <div 
-        className={`fixed right-6 top-24 z-40 w-80 bg-white rounded-3xl border-2 transition-all duration-500 overflow-hidden ${isPaletteVisible ? 'border-indigo-600 shadow-2xl scale-100 opacity-100 translate-x-0' : 'border-slate-200 scale-95 opacity-0 translate-x-4 pointer-events-none'}`}
+        className={`fixed right-6 top-24 z-40 w-[calc(100vw-3rem)] sm:w-80 bg-white rounded-3xl border-2 transition-all duration-500 overflow-hidden ${isPaletteVisible ? 'border-indigo-600 shadow-2xl scale-100 opacity-100 translate-x-0' : 'border-slate-200 scale-95 opacity-0 translate-x-4 pointer-events-none'}`}
         onMouseEnter={() => setIsPaletteHovered(true)}
         onMouseLeave={() => setIsPaletteHovered(false)}
       >
@@ -190,7 +191,7 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="max-h-[500px] overflow-y-auto">
+        <div className="max-h-[60vh] sm:max-h-[500px] overflow-y-auto">
           {palettes.map((pal) => (
             <div 
               key={pal.id} 
@@ -240,128 +241,132 @@ const App: React.FC = () => {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto px-6 mt-12">
-        <section className="text-center mb-16 space-y-4">
-          <h2 className="text-5xl font-black text-slate-900 tracking-tight">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-8 sm:mt-12">
+        <section className="text-center mb-12 sm:mb-16 space-y-4">
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-900 tracking-tight">
             Color Pick
           </h2>
-          <p className="text-slate-500 text-lg font-medium">AI 컬러 연구소 : 3D 시뮬레이션으로 확인하는 색상 조합</p>
+          <p className="text-slate-500 text-sm sm:text-lg font-medium">AI 컬러 연구소 : 3D 시뮬레이션으로 확인하는 색상 조합</p>
         </section>
 
-        <section className="mb-20">
+        <section className="mb-12 sm:mb-20">
           <form onSubmit={handleSearch} className="relative max-w-2xl mx-auto">
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="예: 따뜻한 제주도 노을..."
-              className="w-full h-16 pl-6 pr-40 rounded-2xl border-2 border-slate-200 bg-white focus:outline-none focus:border-indigo-600 transition-all text-lg font-medium shadow-sm"
+              className="w-full h-14 sm:h-16 pl-5 sm:pl-6 pr-32 sm:pr-40 rounded-2xl border-2 border-slate-200 bg-white focus:outline-none focus:border-indigo-600 transition-all text-base sm:text-lg font-medium shadow-sm"
             />
             <button
               disabled={loading}
-              className="absolute right-2 top-2 bottom-2 px-8 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-black transition-all flex items-center gap-2"
+              className="absolute right-1.5 top-1.5 bottom-1.5 px-4 sm:px-8 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white rounded-xl font-black transition-all flex items-center gap-2 text-sm sm:text-base"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Search className="w-5 h-5" />}
-              연구 시작
+              {loading ? <Loader2 className="w-4 h-4 sm:w-5 h-5 animate-spin" /> : <Search className="w-4 h-4 sm:w-5 h-5" />}
+              <span className="hidden xs:inline">연구 시작</span>
+              <span className="xs:hidden">Go</span>
             </button>
           </form>
-          {error && <div className="mt-6 text-red-500 text-center font-bold">{error}</div>}
+          {error && <div className="mt-6 text-red-500 text-center font-bold text-sm">{error}</div>}
         </section>
 
         {data && (
-          <div className="space-y-16 animate-in fade-in duration-700">
-            <CompositionLab 
-              stageObjects={stageObjects} 
-              bg={bgColor} 
-              onUpdateObjects={setStageObjects}
-              onRemoveObject={removeObjectFromStage}
-            />
+          <div className="space-y-12 sm:space-y-16 animate-in fade-in duration-700">
+            <div className="hidden sm:block">
+              <CompositionLab 
+                stageObjects={stageObjects} 
+                bg={bgColor} 
+                onUpdateObjects={setStageObjects}
+                onRemoveObject={removeObjectFromStage}
+              />
+            </div>
 
-            <div className="border-b-2 border-slate-100 pb-10 flex items-end justify-between">
+            <div className="border-b-2 border-slate-100 pb-6 sm:pb-10 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                <div>
-                 <h3 className="text-3xl font-black text-slate-900">{data.themeName}</h3>
-                 <p className="text-slate-400 font-bold mt-1">전문가를 위한 20색 한난 조화 시스템</p>
+                 <h3 className="text-2xl sm:text-3xl font-black text-slate-900">{data.themeName}</h3>
+                 <p className="text-slate-400 font-bold mt-1 text-xs sm:text-sm uppercase tracking-wider">전문가를 위한 20색 한난 조화 시스템</p>
                </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            {/* Mobile: 2 columns, Desktop: 3 and 5 columns */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
               {data.colors.slice(0, visibleCount).map((color, index) => (
-                <div key={index} className="flex flex-col bg-white rounded-3xl border border-slate-200 overflow-hidden hover:border-indigo-400 transition-all animate-in zoom-in duration-300 group/card">
-                  <div className="aspect-square flex items-center justify-center p-8 bg-slate-50 relative">
+                <div key={index} className="flex flex-col bg-white rounded-2xl sm:rounded-3xl border border-slate-200 overflow-hidden hover:border-indigo-400 transition-all animate-in zoom-in duration-300 group/card">
+                  <div className="aspect-square flex items-center justify-center p-4 sm:p-8 bg-slate-50 relative">
                      {/* Main Swatch with Palette Add Overlay */}
-                     <div className="w-28 h-28 rounded-2xl border border-white shadow-sm relative overflow-hidden" style={{ backgroundColor: color.base }}>
+                     <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl sm:rounded-2xl border border-white shadow-sm relative overflow-hidden" style={{ backgroundColor: color.base }}>
                         <button 
                           onClick={() => addToActivePalette(color.base)}
                           className="absolute inset-0 bg-indigo-600/60 text-white flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity"
                           title="메인 컬러 추가"
                         >
-                          <Plus className="w-6 h-6 mb-1" />
-                          <span className="text-[10px] font-black uppercase">Add Base</span>
+                          <Plus className="w-5 h-5 sm:w-6 sm:h-6 mb-1" />
+                          <span className="text-[8px] sm:text-[10px] font-black uppercase">Add Base</span>
                         </button>
                      </div>
-                     <div className="absolute top-3 right-3 flex flex-col gap-1 items-end">
-                        <code className="px-2 py-1 bg-white/80 rounded-lg text-[10px] font-black text-slate-600">{color.base}</code>
+                     <div className="absolute top-2 right-2 flex flex-col gap-1 items-end">
+                        <code className="px-1.5 py-0.5 bg-white/80 rounded-md text-[8px] sm:text-[10px] font-black text-slate-600">{color.base}</code>
                      </div>
                   </div>
                   
-                  <div className="p-5 flex-1 flex flex-col">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-base font-black text-slate-900 truncate">{color.name}</h4>
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => addToActivePalette(color.base)} className="p-1.5 text-slate-300 hover:text-indigo-600 transition-colors" title="팔레트에 추가">
-                          <PlusSquare className="w-4 h-4" />
+                  <div className="p-3 sm:p-5 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-3 sm:mb-4">
+                      <h4 className="text-xs sm:text-base font-black text-slate-900 truncate pr-1">{color.name}</h4>
+                      <div className="flex items-center gap-0.5 sm:gap-1">
+                        <button onClick={() => addToActivePalette(color.base)} className="p-1 text-slate-300 hover:text-indigo-600 transition-colors" title="팔레트에 추가">
+                          <PlusSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         </button>
-                        <button onClick={() => copyToClipboard(color.base, index)} className="p-1.5 text-slate-300 hover:text-indigo-600 transition-colors" title="복사">
-                          {copiedIndex === index ? <CheckCircle className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        <button onClick={() => copyToClipboard(color.base, index)} className="p-1 text-slate-300 hover:text-indigo-600 transition-colors" title="복사">
+                          {copiedIndex === index ? <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500" /> : <Copy className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                         </button>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 mb-5">
-                      <button onClick={() => addObjectToStage(color, 'sphere')} className="flex flex-col items-center gap-1 py-2 bg-slate-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-colors">
-                        <CircleDot className="w-3.5 h-3.5" /> <span className="text-[8px] font-black uppercase">Sphere</span>
+                    <div className="grid grid-cols-2 gap-1 mb-4 sm:mb-5">
+                      <button onClick={() => addObjectToStage(color, 'sphere')} className="flex flex-col items-center gap-0.5 py-1.5 sm:py-2 bg-slate-50 rounded-lg sm:rounded-xl hover:bg-indigo-600 hover:text-white transition-colors">
+                        <CircleDot className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="text-[7px] sm:text-[8px] font-black uppercase">Sphere</span>
                       </button>
-                      <button onClick={() => addObjectToStage(color, 'cube')} className="flex flex-col items-center gap-1 py-2 bg-slate-50 rounded-xl hover:bg-indigo-600 hover:text-white transition-colors">
-                        <Box className="w-3.5 h-3.5" /> <span className="text-[8px] font-black uppercase">Cube</span>
+                      <button onClick={() => addObjectToStage(color, 'cube')} className="flex flex-col items-center gap-0.5 py-1.5 sm:py-2 bg-slate-50 rounded-lg sm:rounded-xl hover:bg-indigo-600 hover:text-white transition-colors">
+                        <Box className="w-3 h-3 sm:w-3.5 sm:h-3.5" /> <span className="text-[7px] sm:text-[8px] font-black uppercase">Cube</span>
                       </button>
-                      <button onClick={() => setBgColor(color)} className="col-span-2 py-2 bg-white border border-slate-200 text-slate-400 rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all text-[9px] font-black mt-1 uppercase">
+                      <button onClick={() => setBgColor(color)} className="col-span-2 py-1.5 sm:py-2 bg-white border border-slate-200 text-slate-400 rounded-lg sm:rounded-xl hover:text-indigo-600 hover:border-indigo-600 transition-all text-[7px] sm:text-[9px] font-black mt-1 uppercase">
                         STAGE BG 설정
                       </button>
                     </div>
 
                     {/* Style Swatches with Hover Activation */}
                     <div 
-                      className="mt-auto p-3 bg-slate-50 rounded-xl border border-slate-100 group/variations"
+                      className="mt-auto p-2 sm:p-3 bg-slate-50 rounded-lg sm:rounded-xl border border-slate-100 group/variations"
                       onMouseEnter={() => setIsPaletteHovered(true)}
                       onMouseLeave={() => setIsPaletteHovered(false)}
                     >
-                       <span className="text-[9px] font-black text-slate-400 block uppercase mb-3 text-center tracking-tighter group-hover/variations:text-indigo-600 transition-colors">
-                         {activePalette.name}에 추가
+                       <span className="text-[7px] sm:text-[9px] font-black text-slate-400 block uppercase mb-2 sm:mb-3 text-center tracking-tighter group-hover/variations:text-indigo-600 transition-colors truncate">
+                         {activePalette.name} 추가
                        </span>
-                       <div className="flex justify-between items-center px-1">
+                       <div className="flex justify-between items-center px-0.5 sm:px-1">
                          {color.variations.map((v, i) => (
                            <div key={i} className="flex flex-col items-center gap-1">
-                             <div className="flex -space-x-3 transition-transform hover:scale-110">
+                             <div className="flex -space-x-3 sm:-space-x-4 transition-transform hover:scale-110">
                                 <button 
                                   onClick={() => addToActivePalette(v.highlight)}
-                                  className="w-10 h-10 rounded-full border-2 border-white relative group/sw" 
+                                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white relative group/sw" 
                                   style={{ backgroundColor: v.highlight }}
                                 >
                                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/sw:opacity-100 bg-white/40 rounded-full">
-                                    <Plus className="w-4 h-4 text-slate-900" />
+                                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-slate-900" />
                                   </div>
                                 </button>
                                 <button 
                                   onClick={() => addToActivePalette(v.shadow)}
-                                  className="w-10 h-10 rounded-full border-2 border-white relative group/sw" 
+                                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-white relative group/sw" 
                                   style={{ backgroundColor: v.shadow }}
                                 >
                                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/sw:opacity-100 bg-black/20 rounded-full">
-                                    <Plus className="w-4 h-4 text-white" />
+                                    <Plus className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                                   </div>
                                 </button>
                              </div>
-                             <span className="text-[8px] font-black text-slate-400">{v.label[0]}</span>
+                             <span className="text-[7px] sm:text-[8px] font-black text-slate-400">{v.label[0]}</span>
                            </div>
                          ))}
                        </div>
@@ -372,12 +377,12 @@ const App: React.FC = () => {
             </div>
 
             {visibleCount < 20 && data.colors.length > visibleCount && (
-              <div className="flex justify-center mt-12">
+              <div className="flex justify-center mt-8 sm:mt-12">
                 <button 
                   onClick={showMoreColors}
-                  className="flex items-center gap-2 px-10 py-4 bg-white border-2 border-slate-200 text-slate-900 rounded-2xl font-black text-lg hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm"
+                  className="flex items-center gap-2 px-8 sm:px-10 py-3 sm:py-4 bg-white border-2 border-slate-200 text-slate-900 rounded-xl sm:rounded-2xl font-black text-base sm:text-lg hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm"
                 >
-                  컬러 더 보기 <ChevronDown className="w-5 h-5" />
+                  컬러 더 보기 <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             )}
@@ -385,9 +390,9 @@ const App: React.FC = () => {
         )}
 
         {loading && (
-          <div className="flex flex-col items-center justify-center py-32 space-y-6">
-            <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
-            <p className="text-xl font-black text-slate-800 animate-pulse">AI가 최적의 컬러 엔진을 가동 중입니다...</p>
+          <div className="flex flex-col items-center justify-center py-20 sm:py-32 space-y-4 sm:space-y-6">
+            <div className="w-16 h-16 sm:w-20 sm:h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin" />
+            <p className="text-lg sm:text-xl font-black text-slate-800 animate-pulse">AI가 최적의 컬러 엔진을 가동 중입니다...</p>
           </div>
         )}
       </main>
