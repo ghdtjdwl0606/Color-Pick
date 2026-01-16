@@ -12,7 +12,7 @@
     "react": "^19.2.3",
     "lucide-react": "^0.562.0",
     "react-dom": "^19.2.3",
-    "@google/generai": "^1.36.0"
+    "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
@@ -23,4 +23,4 @@
   "engines": {
     "node": "20.x"
   }
-} // 맨 마지막에만 중괄호가 있어야 합니다.
+}
