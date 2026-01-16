@@ -6,14 +6,9 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
   if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // 모델 유지
+  // 모델명: gemini-3-flash-preview 유지
   const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-  /**
-   * 1. 개수를 5개로 제한
-   * 2. description을 제거하여 출력 길이 최소화
-   * 3. 일관된 JSON 형식을 위해 예시 구조 명시
-   */
   const prompt = `Create a 5-color palette for: "${keyword}". 
     Return ONLY a valid JSON object. 
     Format: { 
@@ -22,30 +17,39 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
         { "color": "#HEX", "name": "Name", "styles": { "natural": "#HEX", "dramatic": "#HEX", "surreal": "#HEX" } }
       ] 
     }
-    Generate exactly 5 colors. Do not include any descriptions or extra text.`;
+    Generate exactly 5 colors. No descriptions.`;
 
   try {
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
-        maxOutputTokens: 600, // 출력 길이를 더 타이트하게 제한
-        temperature: 0.1,      // 가장 안정적인 결과 유도
+        maxOutputTokens: 800,
+        temperature: 0.1,
       },
     });
 
     const response = await result.response;
     let text = response.text().trim();
-
-    // Markdown 코드 블록이 섞여 나올 경우를 대비한 정규식 제거
     text = text.replace(/```json|```/g, "").trim();
 
     try {
       return JSON.parse(text) as RecommendationResponse;
     } catch (parseError) {
-      console.log("JSON 파싱 에러 발생, 수동 복구 시도...");
-      
-      // 괄호가 덜 닫혔을 경우를 위한 최소한의 안전장치
+      // 복구 로직: 문법 에러가 나지 않도록 완전한 형태로 작성됨
       let repairedText = text;
       if (!repairedText.endsWith("}")) {
-        const lastBr
+        const lastBraceIndex = repairedText.lastIndexOf('}');
+        if (lastBraceIndex !== -1) {
+          repairedText = repairedText.substring(0, lastBraceIndex + 1);
+          if (!repairedText.endsWith(']}')) repairedText += ']}';
+          if (!repairedText.endsWith('}')) repairedText += '}';
+        }
+      }
+      return JSON.parse(repairedText) as RecommendationResponse;
+    }
+  } catch (error: any) {
+    console.error("Gemini 서비스 에러:", error);
+    return { themeName: keyword, recommendations: [] };
+  }
+};
