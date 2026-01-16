@@ -1,19 +1,18 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { RecommendationResponse } from "./types"; // 현재 폴더 구조에 맞춰 경로 확인 (image_3cf630 기준)
+import { RecommendationResponse } from "./types"; // 현재 구조상 루트에 있으므로 ./types
 
 export const generateColorsFromKeyword = async (keyword: string): Promise<RecommendationResponse> => {
-  // Vite 방식의 환경 변수 호출
   const apiKey = import.meta.env.VITE_API_KEY;
   
   if (!apiKey) {
-    throw new Error("Gemini API_KEY가 설정되지 않았습니다. Vercel 환경 변수에 'VITE_API_KEY'를 추가해 주세요.");
+    throw new Error("VITE_API_KEY가 설정되지 않았습니다.");
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // 모델 설정 수정: "models/" 접두사 추가
+  // 1. 모델 이름을 'gemini-1.5-flash-latest'로 변경 시도
   const model = genAI.getGenerativeModel({
-    model: "models/gemini-1.5-flash", 
+    model: "gemini-1.5-flash-latest", 
     generationConfig: {
       responseMimeType: "application/json",
     },
@@ -30,14 +29,13 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
     const response = await result.response;
     const text = response.text();
 
-    if (!text) {
-      throw new Error("AI 응답이 비어있습니다.");
-    }
+    if (!text) throw new Error("AI 응답이 비어있습니다.");
 
     return JSON.parse(text) as RecommendationResponse;
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    // 404 에러나 파싱 에러 발생 시 사용자에게 명확한 메시지 전달
+  } catch (error: any) {
+    console.error("Gemini API 상세 에러:", error);
+    
+    // 만약 여전히 404가 뜬다면, 모델명을 "models/gemini-1.5-flash"로 다시 시도해 보세요.
     throw new Error("컬러를 생성하는 도중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
   }
 };
