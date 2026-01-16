@@ -3,7 +3,14 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { RecommendationResponse } from "../types";
 
 export const generateColorsFromKeyword = async (keyword: string): Promise<RecommendationResponse> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.API_KEY;
+  
+  // API 키 유효성 검사 (Vercel 프로젝트 ID나 잘못된 값이 들어오는 경우 방지)
+  if (!apiKey || apiKey === "undefined" || apiKey.startsWith("prj_")) {
+    throw new Error("Gemini API 키가 올바르게 설정되지 않았습니다. Vercel 환경 변수(API_KEY)에 Google AI Studio에서 발급받은 'AIza...'로 시작하는 키를 입력했는지 확인해주세요.");
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
   
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
