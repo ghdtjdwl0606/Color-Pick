@@ -6,12 +6,10 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
   if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  // 모델을 gemini-3-flash-preview로 유지합니다.
   const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-  // 1. 개수를 10개로 줄이고 설명을 간결하게 하여 데이터 유실을 방지합니다.
   const prompt = `Create a 10-color palette for: "${keyword}". 
-    Return ONLY valid JSON.
+    Return ONLY a valid JSON object. 
     Format: { "themeName": "string", "recommendations": [{ "color": "#HEX", "name": "name", "description": "short", "styles": { "natural": "#HEX", "dramatic": "#HEX", "surreal": "#HEX" } }] }`;
 
   try {
@@ -19,32 +17,44 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
         responseMimeType: "application/json",
-        maxOutputTokens: 2000, 
-        temperature: 0.5,      // 일관성 있는 응답을 유도합니다.
+        maxOutputTokens: 2000,
+        temperature: 0.3, // 온도를 더 낮추어 엄격한 형식을 유도합니다.
       },
     });
 
     const response = await result.response;
-    let text = response.text();
+    let text = response.text().trim();
 
     if (!text) throw new Error("Empty response");
 
     try {
-      // 2. 만약 JSON이 끊겼을 경우(Unterminated string)를 위한 자동 보정 로직
-      if (text.includes('"recommendations":') && !text.endsWith(']}')) {
-        // 마지막으로 정상적으로 끝난 } 이후를 찾아 강제로 닫아줍니다.
-        const lastBrace = text.lastIndexOf('}');
-        if (lastBrace !== -1) {
-          text = text.substring(0, lastBrace + 1);
-          if (!text.endsWith(']')) text += ']';
-          if (!text.endsWith('}')) text += '}';
+      // 해결책 1: JSON 외부에 붙은 불필요한 텍스트나 중복 괄호 제거
+      // 가장 처음 등장하는 { 부터 마지막 } 까지만 추출합니다.
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        text = jsonMatch[0];
+      }
+
+      // 해결책 2: 중복 닫기 괄호 방어 로직
+      // 만약 정규식으로도 해결 안 될 정도로 괄호가 꼬였다면 수동 처리
+      let openBraces = 0;
+      let cutIndex = -1;
+      for (let i = 0; i < text.length; i++) {
+        if (text[i] === '{') openBraces++;
+        if (text[i] === '}') openBraces--;
+        if (openBraces === 0 && cutIndex === -1) {
+          cutIndex = i; // 첫 번째 완벽한 객체가 닫히는 지점 저장
+          break;
         }
       }
-      
+      if (cutIndex !== -1) {
+        text = text.substring(0, cutIndex + 1);
+      }
+
       return JSON.parse(text) as RecommendationResponse;
     } catch (parseError) {
-      console.error("JSON 파싱 에러 발생:", parseError, "데이터 원본:", text);
-      return { themeName: keyword, recommendations: [] };
+      console.error("보정 후에도 파싱 실패:", text);
+      throw parseError;
     }
   } catch (error: any) {
     console.error("Gemini 서비스 에러:", error);
