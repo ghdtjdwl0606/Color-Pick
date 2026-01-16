@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { RecommendationResponse } from "./types"; // 현재 구조상 루트에 있으므로 ./types
+import { RecommendationResponse } from "./types";
 
 export const generateColorsFromKeyword = async (keyword: string): Promise<RecommendationResponse> => {
   const apiKey = import.meta.env.VITE_API_KEY;
@@ -10,21 +10,23 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // 1. 모델 이름을 'gemini-1.5-flash-latest'로 변경 시도
+  // 'models/' 없이 순수 모델명만 입력하거나, SDK 버전에 맞는 형식을 사용합니다.
+  // 에러 로그에서 v1beta를 사용 중이므로 가장 기본 명칭이 안전합니다.
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash-latest", 
+    model: "gemini-1.5-flash", 
     generationConfig: {
       responseMimeType: "application/json",
     },
   });
   
   const prompt = `Expert color theorist. Create a 20-color professional palette for: "${keyword}".
-    Apply "Warm-Cool Contrast" (한난대비) for professional harmony.
-    Exactly 20 unique colors.
-    Each color needs 3 style variations: "Natural", "Dramatic", "Surreal". 
-    Return in JSON format according to the schema.`;
+    Return exactly 20 colors in JSON format according to the schema.
+    Each color must have 3 style variations: "Natural", "Dramatic", "Surreal".`;
 
   try {
+    // API 호출 전 keyword 확인
+    if (!keyword.trim()) throw new Error("키워드를 입력해주세요.");
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -33,9 +35,10 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
 
     return JSON.parse(text) as RecommendationResponse;
   } catch (error: any) {
-    console.error("Gemini API 상세 에러:", error);
+    // 상세 에러 로깅
+    console.error("Gemini API Error Details:", error);
     
-    // 만약 여전히 404가 뜬다면, 모델명을 "models/gemini-1.5-flash"로 다시 시도해 보세요.
-    throw new Error("컬러를 생성하는 도중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    // 만약 404가 계속된다면, API Key의 권한이나 리전(Region) 제한 문제일 수 있습니다.
+    throw new Error("서비스 연결에 실패했습니다. API 키 설정을 확인하거나 잠시 후 다시 시도해주세요.");
   }
 };
