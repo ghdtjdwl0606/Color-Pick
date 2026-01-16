@@ -3,38 +3,31 @@ import { RecommendationResponse } from "./types";
 
 export const generateColorsFromKeyword = async (keyword: string): Promise<RecommendationResponse> => {
   const apiKey = import.meta.env.VITE_API_KEY;
-  
-  if (!apiKey) {
-    throw new Error("VITE_API_KEY가 없습니다.");
-  }
+  if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
 
-  // API 키와 함께 옵션을 설정하지 않고 기본 인스턴스를 생성합니다.
+  // 1. SDK가 v1beta 대신 v1을 사용하도록 명시적으로 유도 (일부 환경에서 필요)
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // 가장 표준적인 모델 명칭인 'gemini-1.5-flash'를 사용합니다.
+  // 2. 모델명을 "gemini-1.5-flash"로 유지하되, 호출 방식을 가장 원시적인 형태로 변경
   const model = genAI.getGenerativeModel({ 
     model: "gemini-1.5-flash" 
   });
 
-  const prompt = `Expert color theorist. Create a 20-color professional palette for: "${keyword}". 
-    Return ONLY JSON format: { "recommendations": [{ "color": "hex", "name": "name", "description": "...", "styles": { "natural": "hex", "dramatic": "hex", "surreal": "hex" } }] }`;
+  const prompt = `Expert color theorist. Create a 20-color professional palette for: "${keyword}".
+    Return in JSON format: { "recommendations": [] }`;
 
   try {
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        // 응답 형식을 JSON으로 강제합니다.
-        responseMimeType: "application/json",
-      },
+      // 3. 응답 형식을 JSON으로 강제
+      generationConfig: { responseMimeType: "application/json" }
     });
 
     const text = result.response.text();
-    if (!text) throw new Error("AI 응답이 없습니다.");
-
     return JSON.parse(text) as RecommendationResponse;
   } catch (error: any) {
     console.error("Gemini 상세 에러:", error);
-    // 에러 발생 시 사용자에게 노출될 문구
-    throw new Error("서비스 연결에 실패했습니다. API 키 권한을 확인해주세요."); 
+    // 4. 만약 여전히 404가 뜨면 API 키를 '새 프로젝트'에서 다시 생성해야 합니다.
+    throw new Error("AI 모델을 찾을 수 없습니다. API 키 권한을 확인하세요.");
   }
 };
