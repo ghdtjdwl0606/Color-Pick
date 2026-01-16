@@ -7,11 +7,9 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // 'models/' 접두사 없이 모델명만 정확히 입력합니다.
-  // v1beta 에러가 지속되면 SDK가 내부적으로 경로를 잘못 잡는 것이므로 
-  // 가장 기본형인 gemini-1.5-flash를 사용합니다.
+  // Playground(image_3e4407)에서 확인된 사용 가능한 최신 모델명으로 수정합니다.
   const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash" 
+    model: "gemini-3-flash-preview" 
   });
 
   const prompt = `Expert color theorist. Create a 20-color professional palette for: "${keyword}".
@@ -30,7 +28,7 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
     return JSON.parse(text) as RecommendationResponse;
   } catch (error: any) {
     console.error("Gemini 상세 에러:", error);
-    // 404 에러가 계속되면 모델명을 "gemini-1.5-flash-latest"로 한 번 더 시도해볼 수 있습니다.
-    throw new Error("AI 호출에 실패했습니다. API 키가 아직 활성화되지 않았거나 설정 오류일 수 있습니다.");
+    // 모델을 찾지 못하는 404 에러 발생 시 안내 문구
+    throw new Error("AI 호출에 실패했습니다. 사용 가능한 모델 설정을 확인해주세요.");
   }
 };
