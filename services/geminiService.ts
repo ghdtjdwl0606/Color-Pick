@@ -3,11 +3,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { RecommendationResponse } from "../types";
 
 export const generateColorsFromKeyword = async (keyword: string): Promise<RecommendationResponse> => {
-  const apiKey = process.env.API_KEY;
+  // process.env.API_KEY가 없는 경우를 대비한 안전한 참조
+  const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : undefined;
   
-  // API 키 유효성 검사 (Vercel 프로젝트 ID나 잘못된 값이 들어오는 경우 방지)
-  if (!apiKey || apiKey === "undefined" || apiKey.startsWith("prj_")) {
-    throw new Error("Gemini API 키가 올바르게 설정되지 않았습니다. Vercel 환경 변수(API_KEY)에 Google AI Studio에서 발급받은 'AIza...'로 시작하는 키를 입력했는지 확인해주세요.");
+  if (!apiKey || apiKey === "undefined" || apiKey === "") {
+    throw new Error("Gemini API_KEY가 설정되지 않았습니다. Vercel 프로젝트 설정(Settings > Environment Variables)에서 'API_KEY'라는 이름으로 실제 Gemini API 키(AIza...로 시작)를 추가해 주세요.");
+  }
+
+  // 사용자가 입력한 prj_... 값은 Vercel Project ID이므로 이에 대한 안내 추가
+  if (apiKey.startsWith("prj_")) {
+    throw new Error(`잘못된 키 형식: '${apiKey.substring(0, 12)}...'는 Vercel 프로젝트 ID입니다. AI 작동을 위해서는 Google AI Studio(https://aistudio.google.com/)에서 발급받은 'AIza'로 시작하는 API 키가 필요합니다.`);
   }
 
   const ai = new GoogleGenAI({ apiKey });
@@ -23,7 +28,6 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
        - "Natural": Realistic lighting.
        - "Dramatic": Clear high-contrast value shift.
        - "Surreal": Sophisticated artistic color shifts. 
-         *SATURATION RULE*: If the base color is highly saturated (vivid), the "Surreal" highlights and shadows MUST be lower-saturation (muted/desaturated) to balance the visual intensity and create a professional look.
     
     JSON SCHEMA:
     {
@@ -80,12 +84,11 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
   });
 
   const text = response.text;
-  if (!text) throw new Error("AI 응답을 생성하지 못했습니다.");
+  if (!text) throw new Error("AI로부터 응답을 받지 못했습니다.");
 
   try {
     return JSON.parse(text) as RecommendationResponse;
   } catch (error) {
-    console.error("JSON parse error:", error, text);
     throw new Error("데이터 형식이 올바르지 않습니다. 다시 시도해 주세요.");
   }
 };
