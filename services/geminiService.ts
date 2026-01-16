@@ -6,68 +6,46 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
   if (!apiKey) throw new Error("API 키가 설정되지 않았습니다.");
 
   const genAI = new GoogleGenerativeAI(apiKey);
+  // 모델 유지
   const model = genAI.getGenerativeModel({ model: "gemini-3-flash-preview" });
 
-  // 1. 프롬프트를 더 단순하게, 예시를 명확하게 제공합니다.
-  const prompt = `Task: Create a color palette for "${keyword}".
-    Return ONLY JSON in this exact structure:
-    {
-      "themeName": "${keyword}",
+  /**
+   * 1. 개수를 5개로 제한
+   * 2. description을 제거하여 출력 길이 최소화
+   * 3. 일관된 JSON 형식을 위해 예시 구조 명시
+   */
+  const prompt = `Create a 5-color palette for: "${keyword}". 
+    Return ONLY a valid JSON object. 
+    Format: { 
+      "themeName": "${keyword}", 
       "recommendations": [
-        { "color": "#HEX", "name": "ColorName", "styles": { "natural": "#HEX", "dramatic": "#HEX", "surreal": "#HEX" } }
-      ]
+        { "color": "#HEX", "name": "Name", "styles": { "natural": "#HEX", "dramatic": "#HEX", "surreal": "#HEX" } }
+      ] 
     }
-    Provide 8 colors max. No descriptions.`;
+    Generate exactly 5 colors. Do not include any descriptions or extra text.`;
 
   try {
     const result = await model.generateContent({
       contents: [{ role: "user", parts: [{ text: prompt }] }],
       generationConfig: {
-        // responseMimeType을 제거하거나 text로 받은 뒤 수동 파싱하는 것이 때로는 더 안전합니다.
-        temperature: 0.1, // 창의성을 최소화하여 형식 준수율을 높임
-        maxOutputTokens: 800,
+        responseMimeType: "application/json",
+        maxOutputTokens: 600, // 출력 길이를 더 타이트하게 제한
+        temperature: 0.1,      // 가장 안정적인 결과 유도
       },
     });
 
     const response = await result.response;
     let text = response.text().trim();
 
-    // 2. Markdown 코드 블록 제거 (혹시 포함될 경우)
+    // Markdown 코드 블록이 섞여 나올 경우를 대비한 정규식 제거
     text = text.replace(/```json|```/g, "").trim();
 
     try {
-      // 3. 정규식을 이용한 불완전 JSON 복구
-      // 텍스트가 { 로 시작하지 않으면 찾아서 자름
-      const firstBrace = text.indexOf('{');
-      const lastBrace = text.lastIndexOf('}');
+      return JSON.parse(text) as RecommendationResponse;
+    } catch (parseError) {
+      console.log("JSON 파싱 에러 발생, 수동 복구 시도...");
       
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        text = text.substring(firstBrace, lastBrace + 1);
-      }
-
-      // 4. 파싱 시도
-      return JSON.parse(text);
-    } catch (e) {
-      // 5. 최후의 수단: 배열이 닫히지 않았을 때 강제로 닫기 시도
-      try {
-        let repaired = text;
-        if (!repaired.endsWith("}")) repaired += "}";
-        if (!repaired.includes("]}")) repaired = repaired.replace(/}$/, "]}");
-        if (!repaired.includes('"}')) repaired = repaired.replace(/$/, '"}'); // 끊긴 문자열 처리 시도
-        
-        // 정규식으로 대략적인 객체 형태만 추출 시도 (비상용)
-        const match = text.match(/\{.*"recommendations":\s*\[.*\]\}/s);
-        if (match) return JSON.parse(match[0]);
-        
-        return JSON.parse(repaired);
-      } catch (finalError) {
-        console.error("복구 불가능한 JSON 상태:", text);
-        throw finalError;
-      }
-    }
-  } catch (error: any) {
-    console.error("Gemini 서비스 에러:", error);
-    // 앱이 죽지 않도록 기본 구조 반환
-    return { themeName: keyword, recommendations: [] };
-  }
-};
+      // 괄호가 덜 닫혔을 경우를 위한 최소한의 안전장치
+      let repairedText = text;
+      if (!repairedText.endsWith("}")) {
+        const lastBr
