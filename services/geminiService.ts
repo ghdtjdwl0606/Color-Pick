@@ -7,13 +7,30 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
 
   const genAI = new GoogleGenerativeAI(apiKey);
   
-  // Playground(image_3e4407)에서 확인된 사용 가능한 최신 모델명으로 수정합니다.
+  // Playground에서 확인된 최신 모델 사용
   const model = genAI.getGenerativeModel({ 
     model: "gemini-3-flash-preview" 
   });
 
+  // AI에게 응답 형식을 더 구체적으로 지시합니다.
   const prompt = `Expert color theorist. Create a 20-color professional palette for: "${keyword}".
-    Return in JSON format: { "recommendations": [{ "color": "hex", "name": "name", "description": "...", "styles": { "natural": "hex", "dramatic": "hex", "surreal": "hex" } }] }`;
+    Apply "Warm-Cool Contrast" (한난대비) for professional harmony.
+    Exactly 20 unique colors.
+    Return ONLY a JSON object with this exact structure:
+    {
+      "recommendations": [
+        {
+          "color": "#HEXCODE",
+          "name": "color name",
+          "description": "brief description",
+          "styles": {
+            "natural": "#HEXCODE",
+            "dramatic": "#HEXCODE",
+            "surreal": "#HEXCODE"
+          }
+        }
+      ]
+    }`;
 
   try {
     const result = await model.generateContent({
@@ -25,10 +42,18 @@ export const generateColorsFromKeyword = async (keyword: string): Promise<Recomm
 
     const response = await result.response;
     const text = response.text();
-    return JSON.parse(text) as RecommendationResponse;
+    
+    // 데이터 파싱 및 안전한 반환
+    const data = JSON.parse(text);
+    
+    // 만약 recommendations가 없다면 빈 배열이라도 넣어서 .slice 에러를 방지합니다.
+    if (!data.recommendations) {
+      return { recommendations: [] } as RecommendationResponse;
+    }
+
+    return data as RecommendationResponse;
   } catch (error: any) {
     console.error("Gemini 상세 에러:", error);
-    // 모델을 찾지 못하는 404 에러 발생 시 안내 문구
-    throw new Error("AI 호출에 실패했습니다. 사용 가능한 모델 설정을 확인해주세요.");
+    throw new Error("데이터를 처리하는 도중 오류가 발생했습니다.");
   }
 };
