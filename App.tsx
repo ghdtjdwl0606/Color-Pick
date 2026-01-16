@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Search, Loader2, Sparkles, Box, CircleDot, Github, Copy, CheckCircle, ChevronDown, Plus, X, Trash2, PlusCircle, FolderHeart, Heart, PlusSquare, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Sparkles, Box, CircleDot, Copy, CheckCircle, ChevronDown, Plus, X, PlusCircle, FolderHeart, Heart, AlertCircle } from 'lucide-react';
 import { generateColorsFromKeyword } from './services/geminiService';
 import { RecommendationResponse, ColorDetail, StageObject, ViewMode, CustomPalette } from './types';
 import CompositionLab from './components/CompositionLab';
@@ -11,7 +10,7 @@ const App: React.FC = () => {
   const [data, setData] = useState<RecommendationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [visibleCount, setVisibleCount] = useState(6); // 모바일 2열 구성을 위해 짝수로 시작
+  const [visibleCount, setVisibleCount] = useState(6);
   
   const [stageObjects, setStageObjects] = useState<StageObject[]>([]);
   const [bgColor, setBgColor] = useState<ColorDetail | null>(null);
@@ -27,15 +26,25 @@ const App: React.FC = () => {
 
   const isPaletteVisible = isPaletteForcedOpen || isPaletteHovered;
 
+  // AI로부터 온 recommendations 데이터 안전하게 확보
+  const recommendations = data?.recommendations || [];
+
   useEffect(() => {
     localStorage.setItem('color-pick-palettes', JSON.stringify(palettes));
   }, [palettes]);
 
   useEffect(() => {
-    if (data?.colors && data.colors.length >= 2) {
-      const initialStage: StageObject[] = data.colors.slice(0, 2).map((color, i) => ({
+    // recommendations 데이터를 사용하여 3D 스테이지 초기화
+    if (recommendations.length >= 2) {
+      const initialStage: StageObject[] = recommendations.slice(0, 2).map((color, i) => ({
         id: `obj-${Date.now()}-${i}`,
-        color,
+        color: {
+          base: color.color,
+          name: color.name,
+          variations: color.styles ? [
+            { highlight: color.styles.natural, shadow: color.styles.dramatic }
+          ] : []
+        } as any,
         activeVariationIndex: 0,
         type: i === 0 ? 'sphere' : 'cube',
         x: 35 + i * 30,
@@ -46,10 +55,14 @@ const App: React.FC = () => {
     }
   }, [data]);
 
-  const addObjectToStage = (color: ColorDetail, type: ViewMode) => {
+  const addObjectToStage = (color: any, type: ViewMode) => {
     const newObj: StageObject = {
       id: `obj-${Date.now()}-${Math.random()}`,
-      color,
+      color: {
+        base: color.color || color.base,
+        name: color.name,
+        variations: color.styles ? [{ highlight: color.styles.natural, shadow: color.styles.dramatic }] : (color.variations || [])
+      } as any,
       activeVariationIndex: 0,
       type,
       x: 50,
@@ -81,7 +94,7 @@ const App: React.FC = () => {
     }
   };
 
-  const showMoreColors = () => setVisibleCount(prev => Math.min(prev + 6, 20));
+  const showMoreColors = () => setVisibleCount(prev => Math.min(prev + 6, recommendations.length));
 
   const copyToClipboard = (text: string, index: number | string) => {
     navigator.clipboard.writeText(text);
@@ -102,6 +115,7 @@ const App: React.FC = () => {
   };
 
   const addToActivePalette = (hex: string) => {
+    if (!hex) return;
     setPalettes(palettes.map(p => {
       if (p.id === activePaletteId && !p.colors.includes(hex)) {
         return { ...p, colors: [...p.colors, hex] };
@@ -174,7 +188,7 @@ const App: React.FC = () => {
         </div>
         <div className="max-h-[50vh] overflow-y-auto">
           {palettes.map((pal) => (
-            <div key={pal.id} className={`p-4 border-b border-slate-50 transition-colors ${activePaletteId === pal.id ? 'bg-indigo-50/50' : ''}`} onClick={() => setActivePaletteId(pal.id)}>
+            <div key={pal.id} className={`p-4 border-b border-slate-50 cursor-pointer transition-colors ${activePaletteId === pal.id ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`} onClick={() => setActivePaletteId(pal.id)}>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-black text-slate-700">{pal.name}</span>
                 <span className="text-[10px] font-bold text-slate-400">{pal.colors.length} 색</span>
@@ -217,14 +231,14 @@ const App: React.FC = () => {
             </button>
           </form>
           {error && (
-            <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 max-w-2xl mx-auto animate-in fade-in slide-in-from-top-2">
+            <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 max-w-2xl mx-auto">
               <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <p className="text-red-700 text-xs sm:text-sm font-bold leading-relaxed">{error}</p>
             </div>
           )}
         </section>
 
-        {data && (
+        {recommendations.length > 0 && (
           <div className="space-y-12 sm:space-y-20">
             <div className="hidden sm:block">
               <CompositionLab stageObjects={stageObjects} bg={bgColor} onUpdateObjects={setStageObjects} onRemoveObject={removeObjectFromStage} />
@@ -232,29 +246,28 @@ const App: React.FC = () => {
 
             <div className="border-b-2 border-slate-200 pb-6 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                <div>
-                 <h3 className="text-xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight">{data.themeName}</h3>
-                 <p className="text-slate-400 font-bold mt-1 text-[10px] sm:text-xs uppercase tracking-widest">전문가용 20색 한난 조화 시스템</p>
+                 <h3 className="text-xl sm:text-3xl font-black text-slate-900 uppercase tracking-tight">{keyword}</h3>
+                 <p className="text-slate-400 font-bold mt-1 text-[10px] sm:text-xs uppercase tracking-widest">전문가용 한난 조화 시스템</p>
                </div>
             </div>
 
-            {/* Mobile: 2 columns grid | Desktop: Responsive 3 to 5 columns */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-6">
-              {data.colors.slice(0, visibleCount).map((color, index) => (
+              {recommendations.slice(0, visibleCount).map((color, index) => (
                 <div key={index} className="flex flex-col bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-indigo-400 transition-all group/card shadow-sm">
                   <div className="aspect-square flex items-center justify-center p-4 sm:p-6 bg-slate-50/50 relative">
-                     <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl border border-white shadow-md relative overflow-hidden" style={{ backgroundColor: color.base }}>
-                        <button onClick={() => addToActivePalette(color.base)} className="absolute inset-0 bg-indigo-600/60 text-white flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-xl border border-white shadow-md relative overflow-hidden" style={{ backgroundColor: color.color }}>
+                        <button onClick={() => addToActivePalette(color.color)} className="absolute inset-0 bg-indigo-600/60 text-white flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                           <Plus className="w-5 h-5 mb-1" />
                           <span className="text-[8px] font-black uppercase tracking-tighter">Add</span>
                         </button>
-                     </div>
-                     <code className="absolute top-2 right-2 px-1.5 py-0.5 bg-white/90 rounded-md text-[8px] sm:text-[10px] font-bold text-slate-500 shadow-sm">{color.base}</code>
+                      </div>
+                      <code className="absolute top-2 right-2 px-1.5 py-0.5 bg-white/90 rounded-md text-[8px] sm:text-[10px] font-bold text-slate-500 shadow-sm">{color.color}</code>
                   </div>
                   
                   <div className="p-3 sm:p-5 flex-1 flex flex-col">
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="text-xs sm:text-sm font-black text-slate-800 truncate pr-1">{color.name}</h4>
-                      <button onClick={() => copyToClipboard(color.base, index)} className="shrink-0 p-1 text-slate-300 hover:text-indigo-600 transition-colors">
+                      <button onClick={() => copyToClipboard(color.color, index)} className="shrink-0 p-1 text-slate-300 hover:text-indigo-600 transition-colors">
                         {copiedIndex === index ? <CheckCircle className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
@@ -271,11 +284,10 @@ const App: React.FC = () => {
                     <div className="mt-auto p-2 bg-slate-50 rounded-xl border border-slate-100">
                        <span className="text-[7px] font-black text-slate-400 block uppercase mb-2 text-center">Style Mix</span>
                        <div className="flex justify-around items-center">
-                         {color.variations.map((v, i) => (
-                           <button key={i} onClick={() => addToActivePalette(v.highlight)} className="group/var flex -space-x-2.5 transition-transform hover:scale-110">
-                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white shadow-sm" style={{ backgroundColor: v.highlight }} />
-                              <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white shadow-sm" style={{ backgroundColor: v.shadow }} />
-                           </button>
+                         {color.styles && Object.entries(color.styles).map(([key, hex], i) => (
+                            <button key={i} onClick={() => addToActivePalette(hex as string)} className="group/var transition-transform hover:scale-125">
+                               <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-white shadow-sm" style={{ backgroundColor: hex as string }} title={key} />
+                            </button>
                          ))}
                        </div>
                     </div>
@@ -284,7 +296,7 @@ const App: React.FC = () => {
               ))}
             </div>
 
-            {visibleCount < 20 && (
+            {visibleCount < recommendations.length && (
               <div className="flex justify-center pt-8">
                 <button 
                   onClick={showMoreColors}
