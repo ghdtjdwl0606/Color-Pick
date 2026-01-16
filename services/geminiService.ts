@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai"; // 1. 올바른 라이브러리 임포트
+import { GoogleGenerativeAI } from "@google/generative-ai"; // 1. 올바른 라이브러리 임포트
 import { RecommendationResponse } from "../types";
 
 export const generateColorsFromKeyword = async (keyword: string): Promise<RecommendationResponse> => {
